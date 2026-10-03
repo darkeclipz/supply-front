@@ -142,3 +142,34 @@ TEST_CASE("Scheduler validates speed bounds even while paused", "[simulation][sc
     scheduler.advance(simulation, 100ms, false, 16);
     REQUIRE(simulation.current_tick() == 16);
 }
+
+TEST_CASE("Frame partitioning preserves progress at each speed", "[simulation][scheduler]") {
+    using namespace std::chrono_literals;
+
+    for (int speed : {1, 2, 4}) {
+        CAPTURE(speed);
+        const auto tick_speed = static_cast<sim::Tick>(speed);
+
+        sim::Simulation coarse_simulation;
+        sim::Simulation fine_simulation;
+        sim::SimulationScheduler coarse_scheduler;
+        sim::SimulationScheduler fine_scheduler;
+
+        coarse_scheduler.advance(
+            coarse_simulation, 1015ms, false, speed);
+        
+        for (int frame = 0; frame < 203; ++frame) {
+            fine_scheduler.advance(
+                fine_simulation, 5ms, false, speed);
+        }
+
+        REQUIRE(coarse_simulation.current_tick() == sim::Tick{10} * speed);
+        REQUIRE(fine_simulation.current_tick() == sim::Tick{10} * speed);
+
+        coarse_scheduler.advance(coarse_simulation, 85ms, false, speed);
+        fine_scheduler.advance(fine_simulation, 85ms, false, speed);
+
+        REQUIRE(coarse_simulation.current_tick() == sim::Tick{11} * speed);
+        REQUIRE(fine_simulation.current_tick() == sim::Tick{11} * speed);
+    }
+}
