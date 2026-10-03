@@ -37,4 +37,15 @@ bool Simulation::entity_exists(GameEntityId id) const {
     return m_entities_by_id.contains(id.value);
 }
 
+bool Simulation::destroy_entity(GameEntityId id) {
+    const auto found = m_entities_by_id.find(id.value);
+    if (found == m_entities_by_id.end()) {
+        return false;
+    }
+
+    m_registry.destroy(found->second);
+    m_entities_by_id.erase(found);
+    return true;
+}
+
 }

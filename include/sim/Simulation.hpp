@@ -16,6 +16,7 @@ public:
     [[nodiscard]] Tick current_tick() const noexcept;
     [[nodiscard]] GameEntityId create_entity();
     [[nodiscard]] bool entity_exists(GameEntityId id) const;
+    [[nodiscard]] bool destroy_entity(GameEntityId id);
 private:
     entt::registry m_registry;
     Tick m_current_tick = 0;

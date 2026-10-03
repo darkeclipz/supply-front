@@ -6,10 +6,10 @@ Give simulation entities permanent identities independent of EnTT handles, as re
 
 Tutor checkpoint: active.
 
-- Current step: Allocation and direct <limits> include verified. Add a private stable-ID index and entity_exists query; proposed, not implemented.
-- Context: Add std::unordered_map<std::uint64_t, entt::entity> m_entities_by_id to Simulation, indexed by GameEntityId::value. Insert the mapping inside create_entity's existing try block after attaching the ID component, so failed insertion destroys the unfinished entity and leaves the last-ID counter unchanged. Add [[nodiscard]] bool entity_exists(GameEntityId id) const, implemented using contains(id.value). Use the index only for lookup, not gameplay iteration order. Destruction follows after lookup verification; keep GameSession mutation APIs out of scope.
-- Verification: On 2026-10-03, agent confirmed <limits> replaced <climits>, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 22 tests passed. Allocation overflow guard is source-reviewed; lookup is not implemented or verified yet.
-- Next action: Programmer adds unordered_map include, index member, entity_exists declaration/definition, and index insertion in create_entity. Add a headless test checking invalid zero, unknown 999, and both created IDs; rebuild Debug and run ctest (23 expected). Then add destruction and non-reuse tests.
+- Current step: Private stable-ID index and entity_exists verified. Add destroy_entity and lifecycle/non-reuse test; proposed, not implemented.
+- Context: Simulation indexes uint64_t ID values to private EnTT handles in m_entities_by_id. create_entity inserts into the index inside its cleanup-protected try block. entity_exists uses contains. Next add [[nodiscard]] bool destroy_entity(GameEntityId id): find mapping, return false if absent, destroy mapped EnTT entity, erase mapping, return true. Do not decrement m_last_entity_id. Registry stays private; GameSession mutation and serialization remain later tasks.
+- Verification: On 2026-10-03, agent reviewed index insertion, query, and headless test; cmake --build --preset debug -j 2 succeeded and ctest --preset debug passed all 23 tests. Unknown/zero lookup and both live IDs verified. Destruction/non-reuse unimplemented. Overflow guard previously source-reviewed, not runtime-tested.
+- Next action: Programmer adds destroy_entity declaration/definition and one lifecycle test covering invalid/unknown destruction, removal, surviving entity, repeated destruction, newly allocated ID 3, and continued invalidity of old ID. Rebuild Debug and run ctest (24 expected). Review and close todo after all criteria have evidence.
 - Blocker: None.
 
 ## Acceptance criteria

@@ -200,3 +200,26 @@ TEST_CASE("Simulation looks up stable gameplay IDs", "[simulation][identity]") {
     REQUIRE(simulation.entity_exists(second));
     REQUIRE_FALSE(simulation.entity_exists(sim::GameEntityId{999}));
 }
+
+TEST_CASE("Destroyed gameplay IDs stay invalid", "[simulation][identity]") {
+    sim::Simulation simulation;
+    const auto first = simulation.create_entity();
+    const auto second = simulation.create_entity();
+
+    REQUIRE_FALSE(simulation.destroy_entity(sim::GameEntityId{}));
+    REQUIRE_FALSE(simulation.destroy_entity(sim::GameEntityId{999}));
+
+    REQUIRE(simulation.destroy_entity(first));
+    REQUIRE_FALSE(simulation.entity_exists(first));
+    REQUIRE(simulation.entity_exists(second));
+    REQUIRE_FALSE(simulation.entity_exists(first));
+    
+    const auto replacement = simulation.create_entity();
+
+    REQUIRE(replacement.value == 3);
+    REQUIRE(simulation.entity_exists(replacement));
+    REQUIRE_FALSE(simulation.entity_exists(first));
+    REQUIRE_FALSE(simulation.destroy_entity(first));
+    REQUIRE(simulation.entity_exists(replacement));
+    REQUIRE(simulation.entity_exists(second));
+}
