@@ -6,10 +6,10 @@ Add offline 1x, 2x, and 4x gameplay speed controls as planned in docs/SYSTEM-DES
 
 Tutor checkpoint: active.
 
-- Current step: Faster frame-partition equivalence verified; correct signed/unsigned comparisons in its four assertions, proposed, not implemented.
+- Current step: Scheduler tests and warning cleanup verified. Forward speed through GameSession::advance; proposed, not implemented.
 - Context: Programmer implemented integer speeds 1 through 16 inclusive rather than the suggested discrete 1/2/4 set. Retain this range and test its bounds; desktop preset choices remain 1x/2x/4x. Validation precedes the pause return. Existing callers retain 1x behavior. GameSession and UI wiring follow after scheduler verification.
-- Verification: On 2026-10-03, agent ran the Debug build successfully and ctest --preset debug: all 21 tests passed, including faster partition equivalence and remainder checks. A syntax-only compilation using the existing compile_commands.json flags reproduced four -Wsign-compare warnings at tests/simulation_tests.cpp:165,166,171,172: unsigned sim::Tick compared with signed int expressions. Catch2 macro notes make these four warnings verbose.
-- Next action: The programmer will define const auto tick_speed = static_cast<sim::Tick>(speed) within the final test loop and replace 10 * speed and 11 * speed in its assertions with sim::Tick{10} * tick_speed and sim::Tick{11} * tick_speed, then rebuild Debug and rerun tests. GameSession forwarding follows after warning cleanup.
+- Verification: On 2026-10-03, agent ran the Debug build successfully and ctest --preset debug: all 21 tests passed. Syntax-only compilation of tests/simulation_tests.cpp using compile_commands.json flags completed with no compiler diagnostics. All four final-test assertions now use tick_speed.
+- Next action: The programmer will append int speed = 1 to GameSession::advance in include/app/GameSession.hpp, append int speed to its definition in src/app/GameSession.cpp, and forward speed as the fourth scheduler.advance argument. Rebuild Debug and run all 21 tests; UI wiring follows next. Existing tests exercise the scheduler, not GameSession directly.
 - Blocker: None.
 
 ## Acceptance criteria

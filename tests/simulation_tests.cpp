@@ -163,13 +163,13 @@ TEST_CASE("Frame partitioning preserves progress at each speed", "[simulation][s
                 fine_simulation, 5ms, false, speed);
         }
 
-        REQUIRE(coarse_simulation.current_tick() == sim::Tick{10} * speed);
-        REQUIRE(fine_simulation.current_tick() == sim::Tick{10} * speed);
+        REQUIRE(coarse_simulation.current_tick() == sim::Tick{10} * tick_speed);
+        REQUIRE(fine_simulation.current_tick() == sim::Tick{10} * tick_speed);
 
         coarse_scheduler.advance(coarse_simulation, 85ms, false, speed);
         fine_scheduler.advance(fine_simulation, 85ms, false, speed);
 
-        REQUIRE(coarse_simulation.current_tick() == sim::Tick{11} * speed);
-        REQUIRE(fine_simulation.current_tick() == sim::Tick{11} * speed);
+        REQUIRE(coarse_simulation.current_tick() == sim::Tick{11} * tick_speed);
+        REQUIRE(fine_simulation.current_tick() == sim::Tick{11} * tick_speed);
     }
 }
