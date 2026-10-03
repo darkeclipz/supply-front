@@ -1,5 +1,7 @@
 #pragma once
 
+#include "sim/GameEntityId.hpp"
+
 #include <cstdint>
 #include <entt/entt.hpp>
 
