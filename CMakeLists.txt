@@ -35,6 +35,10 @@ target_link_libraries(supply_sim PUBLIC EnTT::EnTT)
 target_compile_features(supply_sim PUBLIC cxx_std_20)
 seed_warnings(supply_sim)
 
+add_library(supply_session STATIC src/app/GameSession.cpp)
+target_link_libraries(supply_session PUBLIC supply_sim)
+seed_warnings(supply_session)
+
 if(SEED_BUILD_SANDBOX)
     add_library(engine_render STATIC src/engine/Assets.cpp)
     target_link_libraries(engine_render PUBLIC engine_scene raylib)
@@ -42,7 +46,7 @@ if(SEED_BUILD_SANDBOX)
 
     add_executable(sandbox src/main.cpp)
     target_link_libraries(sandbox 
-        PRIVATE engine_render supply_sim spdlog::spdlog)
+        PRIVATE engine_render supply_session spdlog::spdlog)
     target_compile_definitions(sandbox PRIVATE SEED_WITH_EDITOR=$<BOOL:${SEED_WITH_EDITOR}>)
     if(SEED_WITH_EDITOR)
         target_link_libraries(sandbox PRIVATE seed_rlimgui)

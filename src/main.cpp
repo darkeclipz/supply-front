@@ -1,6 +1,6 @@
 #include "engine/Assets.hpp"
 #include "engine/Scene.hpp"
-#include "sim/SimulationScheduler.hpp"
+#include "app/GameSession.hpp"
 
 #include <raylib.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -232,8 +232,7 @@ int run(const Options& options) {
     int frames = 0;
     constexpr double step = 1.0 / 60.0;
     double accumulator = 0.0;
-    sim::Simulation simulation;
-    sim::SimulationScheduler scheduler;
+    app::GameSession session;
 
     while (running && !WindowShouldClose()) {
         const double frame_elapsed = std::max(static_cast<double>(GetFrameTime()), 0.0);
@@ -254,7 +253,7 @@ int run(const Options& options) {
 #endif
         if (!keyboardCaptured && IsKeyPressed(KEY_ESCAPE)) running = false;
         camera.update(mouseCaptured);
-        scheduler.advance(simulation, simulation_elapsed, !playing);
+        session.advance(simulation_elapsed, !playing);
         if (playing) {
             accumulator += elapsed;
             int steps = 0;
@@ -273,7 +272,7 @@ int run(const Options& options) {
         engine::drawScene(world, assets);
         EndMode3D();
         const auto tick_label = std::string{"Simulation tick: "}
-            + std::to_string(simulation.current_tick());
+            + std::to_string(session.current_tick());
         DrawText(tick_label.c_str(), 16, GetScreenHeight() - 55, 18, RAYWHITE);
 #if SEED_WITH_EDITOR
         rlImGuiEnd();
