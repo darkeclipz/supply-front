@@ -391,3 +391,80 @@ TEST_CASE("Completed commands cannot reuse their sequence", "[simulation][comman
     REQUIRE(simulation.command_outcomes()[1].command.sequence == 2);
     REQUIRE(simulation.command_outcomes()[1].result == sim::CommandExecution::accepted);
 }
+
+TEST_CASE("Command outcomes survive frame pause and speed changes", "[simulation][commands][scheduler]") {
+    using namespace std::chrono_literals;
+
+    sim::Simulation reference;
+    sim::Simulation varied;
+    sim::SimulationScheduler reference_scheduler;
+    sim::SimulationScheduler varied_scheduler;
+
+    const auto prepare = [](sim::Simulation& simulation) {
+        const auto target = simulation.create_entity();
+
+        REQUIRE(simulation.submit_command(sim::Command{
+            .execute_at = 2,
+            .player_id = 0,
+            .sequence = 1,
+            .payload = {target}
+        }) == sim::CommandSubmission::queued);
+
+        REQUIRE(simulation.submit_command(sim::Command{
+            .execute_at = 4,
+            .player_id = 0,
+            .sequence = 2,
+            .payload = {target}
+        }) == sim::CommandSubmission::queued);
+
+        return target;
+    };
+
+    const auto reference_target = prepare(reference);
+    const auto varied_target = prepare(varied);
+
+    reference_scheduler.advance(reference, 450ms);
+
+    for (int frame = 0; frame < 5; ++frame) {
+        varied_scheduler.advance(varied, 5ms);
+    }
+
+    varied_scheduler.advance(varied, 10s, true, 4);
+    REQUIRE(varied.current_tick() == 0);
+    REQUIRE(varied.command_outcomes().empty());
+    REQUIRE(varied.entity_exists(varied_target));
+
+    varied_scheduler.advance(varied, 25ms);
+
+    for (int frame = 0; frame < 3; ++frame) {
+        varied_scheduler.advance(varied, 25ms, false, 2);
+    }
+    for (int frame = 0; frame < 5; ++frame) {
+        varied_scheduler.advance(varied, 10ms, false, 4);
+    }
+    varied_scheduler.advance(varied, 50ms);
+
+    REQUIRE(reference.current_tick() == 4);
+    REQUIRE(varied.current_tick() == 4);
+    REQUIRE_FALSE(reference.entity_exists(reference_target));
+    REQUIRE_FALSE(reference.entity_exists(varied_target));
+
+    const auto& expected = reference.command_outcomes();
+    const auto& actual = varied.command_outcomes();
+
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        CAPTURE(i);
+        REQUIRE(actual[i].command.execute_at == expected[i].command.execute_at);
+        REQUIRE(actual[i].command.player_id == expected[i].command.player_id);
+        REQUIRE(actual[i].command.sequence == expected[i].command.sequence);
+        REQUIRE(actual[i].command.payload.target == expected[i].command.payload.target);
+        REQUIRE(actual[i].result == expected[i].result);
+    }
+
+    reference_scheduler.advance(reference, 50ms);
+    varied_scheduler.advance(varied, 50ms);
+    REQUIRE(reference.current_tick() == 5);
+    REQUIRE(varied.current_tick() == 5);
+    REQUIRE(expected.size() == 2);
+    REQUIRE(actual.size() == 2);
+}
