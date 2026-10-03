@@ -6,10 +6,10 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: paused.
 
-- Current step: Equivalence test size/result guards implemented and verified; one target-existence assertion correction remains. Paused while graybox map is active.
-- Context: The test now checks outcome sizes before indexing and explicit accepted/missing_entity results. It still uses REQUIRE_FALSE(reference.entity_exists(varied_target)); replace reference with varied on that line. Both fresh simulations assign the same numeric ID, so the current assertion checks the reference twice. GameSession forwarding remains deferred until gameplay needs it.
-- Verification: On 2026-10-04, agent reviewed saved test, ran cmake --build --preset debug -j 2 successfully without compiler diagnostics and ctest --preset debug: all 29 tests passed. Outcome comparison and size/result guards verified. Final varied-target absence remains unchecked because of the wrong simulation reference.
-- Next action: Programmer changes the varied_target assertion to varied.entity_exists(varied_target), then continues the ground-plane/camera step in todo/open/graybox-map.md. Rerun existing build/tests after edits. Resume GameSession forwarding when movement needs it; do not close this todo yet.
+- Current step: Scheduler equivalence test fully corrected and verified. Paused while graybox map is active; GameSession forwarding remains pending.
+- Context: Test correctly checks each simulation's target absence, guards outcome indexing with sizes, compares every command field/result, explicitly expects accepted then missing_entity, and confirms matching tick/remainder with no repeated outcomes after another advance. Development destruction fixture remains a headless harness action.
+- Verification: On 2026-10-04, agent confirmed REQUIRE_FALSE(varied.entity_exists(varied_target)), ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 29 tests passed. Command timing, ordering, validation, and scheduler partition/pause/speed equivalence now have test evidence.
+- Next action: Continue the ground-plane/camera step in todo/open/graybox-map.md. Resume GameSession submission/read-only outcome forwarding when movement needs application access; do not close this todo until forwarding is complete.
 - Blocker: None.
 
 ## Acceptance criteria
@@ -19,5 +19,5 @@ Tutor checkpoint: paused.
 - [x] Each tick executes only commands due for that tick in deterministic player/sequence order and preserves future commands.
 - [x] Execution records accepted/rejected outcomes, including a missing-entity reason, using the development-only destruction fixture.
 - [ ] GameSession forwards command submission and exposes read-only results without exposing Simulation or registry mutation.
-- [ ] Headless tests verify timing, ordering across players, sequence validation, future retention, missing targets, and equivalent outcomes across scheduler frame partitions and pause/speed changes.
-- [ ] Debug build and all tests pass.
+- [x] Headless tests verify timing, ordering across players, sequence validation, future retention, missing targets, and equivalent outcomes across scheduler frame partitions and pause/speed changes.
+- [x] Debug build and all tests pass.
