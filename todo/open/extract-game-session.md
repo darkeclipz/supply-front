@@ -6,15 +6,15 @@ Introduce the app/GameSession boundary from docs/EXAMPLE-DESIGN.md. GameSession 
 
 Tutor checkpoint: active.
 
-- Current step: Add include/app/GameSession.hpp and src/app/GameSession.cpp, a headless supply_session library, and replace main.cpp's simulation/scheduler locals with one session; proposed, not implemented.
+- Current step: GameSession extraction and [[nodiscard]] correction implemented and reviewed; desktop verification remains pending.
 - Context: Expose advance(nanoseconds, bool paused = false) and current_tick() const. Keep simulation mutation private. Current pause choice stays in the existing playing UI variable for this small extraction.
-- Verification: Prior foundation passes the Debug build and all 17 tests; programmer reports desktop 10 Hz/pause/resume checks pass. No checks run for this extraction.
-- Next action: The programmer will implement the class and CMake wiring shown in chat, delegate advancement and tick display through session, build Debug, run all tests, and verify the visible counter/pause behavior is unchanged.
-- Blocker: None. Speed controls, commands, and GameApp extraction are subsequent work.
+- Verification: On 2026-10-03, source confirms private simulation/scheduler ownership, headless supply_session linking only supply_sim, main.cpp delegation through session, and correct [[nodiscard]] spelling. Agent ran cmake --build --preset debug -j 2 successfully (asset staging only) and ctest --preset debug: all 17 tests passed. The tests exercise Simulation/Scheduler, not GameSession directly. Desktop behavior after extraction has not been explicitly reported.
+- Next action: The programmer will run ./build/debug/bin/sandbox, check roughly 10 ticks/second, pause for several seconds using Play fixed-step simulation, resume and confirm no catch-up for paused time, then report the result.
+- Blocker: None; awaiting programmer desktop verification. Speed controls, commands, and GameApp extraction are subsequent work.
 
 ## Acceptance criteria
 
-- [ ] GameSession privately owns Simulation and SimulationScheduler in a library without graphics dependencies.
-- [ ] main.cpp advances and reads the tick through one GameSession instance.
-- [ ] Debug build succeeds and all existing 17 tests pass.
+- [x] GameSession privately owns Simulation and SimulationScheduler in a library without graphics dependencies.
+- [x] main.cpp advances and reads the tick through one GameSession instance.
+- [x] Debug build succeeds and all existing 17 tests pass.
 - [ ] Desktop tick rate and pause/resume behavior remain correct after extraction.
