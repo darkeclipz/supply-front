@@ -6,10 +6,10 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: active.
 
-- Current step: Due-tick execution and outcome recording implemented and timing test verified. Correct the overflow exception throw; proposed, not implemented.
-- Context: tick sorts by execute_at/player_id/sequence, executes the due prefix, reserves outcome storage before mutation, records accepted/missing_entity, removes processed commands, and advances the completed tick. Source currently says throw new std::overflow_error in tick's exhaustion guard; change to throw std::overflow_error so it throws an exception object, not a heap-allocated pointer. The pointer escapes catch(const std::exception&) and leaks without manual deletion. Creation already throws by value correctly. Outcome history is cumulative. Same-tick ordering, scheduler equivalence, and GameSession forwarding remain later steps.
-- Verification: On 2026-10-03, agent reviewed source and timing test, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 26 tests passed. Test verifies no early execution, retained future command, accepted tick-2 destruction, tick-3 missing target, and no repeated outcomes. Tests do not exercise tick exhaustion; the throw-new defect was found by source review. Comparator ordering is source-reviewed but not yet behavior-tested.
-- Next action: Programmer removes new from throw in src/sim/Simulation.cpp::tick and reruns Debug build and ctest (26 expected). Then add a same-tick ordering test with interleaved player submissions, followed by post-execution sequence-reuse/late-tick tests, scheduler equivalence, and GameSession forwarding.
+- Current step: Same-tick ordering test implemented with two transcription errors; correction proposed, not implemented.
+- Context: In tests/simulation_tests.cpp's final test, outcomes[4].command.result is invalid: result belongs to CommandOutcome, so use outcomes[4].result. The missing_entity loop starts at i = 0 but outcome 0 is accepted; start at i = 1. Interleaved submissions and other ordering assertions match the proposed test. Queue implementation remains unchanged.
+- Verification: On 2026-10-03, agent ran cmake --build --preset debug -j 2; build failed at tests/simulation_tests.cpp:349 because Command has no result member. Compiler emitted error plus Catch2 macro-expansion notes; no separate compiler warnings appeared. Agent found the incorrect loop bound by source inspection. Tests were not run after the failed build; previous 26-test pass predates this test.
+- Next action: Programmer removes .command from the final result assertion and changes the missing_entity loop's initial index to 1, rebuilds Debug, and runs ctest (27 expected). Then verify late submissions and post-execution sequence reuse, scheduler equivalence, and GameSession forwarding.
 - Blocker: None.
 
 ## Acceptance criteria

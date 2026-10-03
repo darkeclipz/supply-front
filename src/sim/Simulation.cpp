@@ -99,8 +99,7 @@ CommandSubmission Simulation::submit_command(Command command) {
     return CommandSubmission::queued;
 }
 
-const std::vector<CommandOutcome>&
-Simulation::command_outcomes() const noexcept {
+const std::vector<CommandOutcome>& Simulation::command_outcomes() const noexcept {
     return m_command_outcomes;
 }
 

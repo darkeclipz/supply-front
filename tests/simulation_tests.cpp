@@ -299,3 +299,52 @@ TEST_CASE("Commands execute once at their scheduled tick", "[simulation][command
     simulation.tick();
     REQUIRE(simulation.command_outcomes().size() == 2);
 }
+
+TEST_CASE("Commands execute in tick player sequence order", "[simulation][commands]") {
+    sim::Simulation simulation;
+    const auto target = simulation.create_entity();
+
+    const auto submit = [&](sim::Tick tick, std::uint32_t player, std::uint64_t sequence) {
+        REQUIRE(simulation.submit_command(sim::Command{
+            .execute_at = tick,
+            .player_id = player,
+            .sequence = sequence,
+            .payload = {target}
+        }) == sim::CommandSubmission::queued);
+    };
+
+    submit(3, 0, 1);
+    submit(1, 1, 1);
+    submit(1, 0, 2);
+    submit(1, 1, 2);
+    submit(1, 0, 3);
+
+    simulation.tick();
+
+    const auto& outcomes = simulation.command_outcomes();
+    REQUIRE(outcomes.size() == 4);
+
+    REQUIRE(outcomes[0].command.player_id == 0);
+    REQUIRE(outcomes[0].command.sequence == 2);
+    REQUIRE(outcomes[1].command.player_id == 0);
+    REQUIRE(outcomes[1].command.sequence == 3);
+    REQUIRE(outcomes[2].command.player_id == 1);
+    REQUIRE(outcomes[2].command.sequence == 1);
+    REQUIRE(outcomes[3].command.player_id == 1);
+    REQUIRE(outcomes[3].command.sequence == 2);
+
+    REQUIRE(outcomes[0].result == sim::CommandExecution::accepted);
+    for (std::size_t i = 1; i < outcomes.size(); ++i) {
+        REQUIRE(outcomes[i].result == sim::CommandExecution::missing_entity);
+    }
+
+    simulation.tick();
+    REQUIRE(outcomes.size() == 4);
+
+    simulation.tick();
+    REQUIRE(outcomes.size() == 5);
+    REQUIRE(outcomes[4].command.execute_at == 3);
+    REQUIRE(outcomes[4].command.player_id == 0);
+    REQUIRE(outcomes[4].command.sequence == 1);
+    REQUIRE(outcomes[4].result == sim::CommandExecution::missing_entity);
+}
