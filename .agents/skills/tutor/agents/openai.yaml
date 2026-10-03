@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supply Front Tutor"
+  short_description: "Learn step by step and resume through project todos"
+  default_prompt: "Use $tutor to continue programming this project from the active todo."

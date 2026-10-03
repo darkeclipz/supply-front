@@ -1,0 +1,4 @@
+interface:
+  display_name: "Todo Management"
+  short_description: "Manage simple Supply Front project todos"
+  default_prompt: "Use $todo-management to manage the todos for this project."
