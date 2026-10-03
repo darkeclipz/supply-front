@@ -24,4 +24,14 @@ enum class CommandSubmission {
     invalid_sequence
 };
 
+enum class CommandExecution {
+    accepted,
+    missing_entity
+};
+
+struct CommandOutcome {
+    Command command;
+    CommandExecution result;
+};
+
 }

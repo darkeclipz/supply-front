@@ -260,3 +260,42 @@ TEST_CASE("Command submission validates tick and player sequence", "[simulation]
     command.sequence = 1;
     REQUIRE(simulation.submit_command(command) == Result::queued);
 }
+
+TEST_CASE("Commands execute once at their scheduled tick", "[simulation][commands]") {
+    sim::Simulation simulation;
+    const auto target = simulation.create_entity();
+
+    REQUIRE(simulation.submit_command(sim::Command{
+        .execute_at = 2,
+        .player_id = 0,
+        .sequence = 1,
+        .payload = {target}
+    }) == sim::CommandSubmission::queued);
+
+    REQUIRE(simulation.submit_command(sim::Command{
+        .execute_at = 3,
+        .player_id = 0,
+        .sequence = 2,
+        .payload = {target}
+    }) == sim::CommandSubmission::queued);
+
+    simulation.tick();
+    REQUIRE(simulation.current_tick() == 1);
+    REQUIRE(simulation.entity_exists(target));
+    REQUIRE(simulation.command_outcomes().empty());
+
+    simulation.tick();
+    REQUIRE(simulation.current_tick() == 2);
+    REQUIRE_FALSE(simulation.entity_exists(target));
+    REQUIRE(simulation.command_outcomes().size() == 1);
+    REQUIRE(simulation.command_outcomes()[0].command.execute_at == 2);
+    REQUIRE(simulation.command_outcomes()[0].result == sim::CommandExecution::accepted);
+
+    simulation.tick();
+    REQUIRE(simulation.command_outcomes().size() == 2);
+    REQUIRE(simulation.command_outcomes()[1].command.execute_at == 3);
+    REQUIRE(simulation.command_outcomes()[1].result == sim::CommandExecution::missing_entity);
+
+    simulation.tick();
+    REQUIRE(simulation.command_outcomes().size() == 2);
+}

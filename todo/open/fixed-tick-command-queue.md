@@ -6,16 +6,16 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: active.
 
-- Current step: Shared Tick.hpp and Command.hpp verified. Add submission result enum, validation, and pending storage; proposed, not implemented.
-- Context: Command holds execute_at/player_id/sequence/DestroyEntityCommand payload. Add CommandSubmission { queued, invalid_tick, invalid_sequence } in Command.hpp, [[nodiscard]] CommandSubmission submit_command(Command command) to Simulation, vector<Command> m_pending_commands, and unordered_map<uint32_t,uint64_t> m_last_command_sequence. Require execute_at > m_current_tick and sequence greater than the last queued sequence for that player (initially 0). Gaps are allowed; rejected commands do not consume sequence numbers. Use try_emplace(player_id, 0), validate, push_back, then update the sequence value so allocation failure cannot consume a sequence. Submission does not execute payloads or validate target existence; execution later checks targets. tick remains unchanged for this step.
-- Verification: On 2026-10-03, agent inspected headers and test include, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 24 tests passed. No scheduling behavior implemented yet.
-- Next action: Programmer adds submission enum, declaration, storage, and method, plus one headless test checking queued status without immediate destruction/tick advance, tick 0 rejection, sequence 0 rejection, duplicate/lower sequence rejection, and independent player sequences. Rebuild Debug and run ctest (25 expected). Then implement due-tick execution and recorded outcomes.
+- Current step: Submission storage and validation verified. Add due-tick execution and read-only outcome history; proposed, not implemented.
+- Context: Submission requires future tick and increasing per-player sequence; rejected submissions do not consume sequences. Add CommandExecution { accepted, missing_entity }, CommandOutcome { Command command; CommandExecution result; }, private vector<CommandOutcome> m_command_outcomes, and const-reference command_outcomes() accessor. tick guards tick overflow, sorts pending commands lexicographically by execute_at/player_id/sequence, finds the due prefix for current_tick + 1, reserves outcome capacity before mutations, destroys each due target and records its result, erases processed commands, then commits the tick. Outcome history is cumulative for this small foundation; retention policy follows later. Development-only destroy fixture has no ownership/visibility checks.
+- Verification: On 2026-10-03, agent reviewed source and full submission test, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 25 tests passed. Tick 0, sequence 0, duplicate/lower sequences, independent players, and absence of immediate mutation verified. Execution/order/future retention are not implemented yet.
+- Next action: Programmer adds outcome types/accessor/storage and replaces tick with ordered due execution (algorithm/tuple includes). Add one test scheduling two destroys of the same target at ticks 2 and 3; check no execution at tick 1, accepted destruction at tick 2, missing_entity at tick 3, and no repeated outcomes at tick 4. Rebuild Debug and run ctest (26 expected). Then add same-tick ordering, sequence reuse/late-tick tests, scheduler equivalence, and GameSession forwarding.
 - Blocker: None.
 
 ## Acceptance criteria
 
 - [x] Command data records execution tick, player ID, per-player sequence, and a stable-ID payload independently of Simulation.hpp.
-- [ ] Submission queues commands without immediately changing entities and reports reasons for invalid tick or sequence; per-player sequence identities cannot be duplicated or reused.
+- [x] Submission queues commands without immediately changing entities and reports reasons for invalid tick or sequence; per-player sequence identities cannot be duplicated or reused.
 - [ ] Each tick executes only commands due for that tick in deterministic player/sequence order and preserves future commands.
 - [ ] Execution records accepted/rejected outcomes, including a missing-entity reason, using the development-only destruction fixture.
 - [ ] GameSession forwards command submission and exposes read-only results without exposing Simulation or registry mutation.

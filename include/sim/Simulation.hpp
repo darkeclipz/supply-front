@@ -19,6 +19,7 @@ public:
     [[nodiscard]] bool entity_exists(GameEntityId id) const;
     [[nodiscard]] bool destroy_entity(GameEntityId id);
     [[nodiscard]] CommandSubmission submit_command(Command command);
+    [[nodiscard]] const std::vector<CommandOutcome>& command_outcomes() const noexcept;
 private:
     entt::registry m_registry;
     Tick m_current_tick = 0;
@@ -26,5 +27,6 @@ private:
     std::unordered_map<std::uint64_t, entt::entity> m_entities_by_id;
     std::vector<Command> m_pending_commands;
     std::unordered_map<std::uint32_t, std::uint64_t> m_last_command_sequence;
+    std::vector<CommandOutcome> m_command_outcomes;
 };
 }

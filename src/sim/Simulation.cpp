@@ -2,11 +2,45 @@
 
 #include <limits>
 #include <stdexcept>
+#include <algorithm>
+#include <tuple>
 
 namespace sim {
 
 void Simulation::tick() {
-    ++m_current_tick;
+    if (m_current_tick == std::numeric_limits<Tick>::max()) {
+        throw new std::overflow_error("simulation tick exhausted");
+    }
+
+    const Tick next_tick = m_current_tick + 1;
+
+    std::sort(m_pending_commands.begin(), m_pending_commands.end(),
+        [](const Command& a, const Command& b) {
+            return std::tie(a.execute_at, a.player_id, a.sequence)
+                <  std::tie(b.execute_at, b.player_id, b.sequence);
+        });
+
+    const auto due_end = std::find_if(
+        m_pending_commands.begin(), m_pending_commands.end(),
+        [next_tick](const Command& command) {
+            return command.execute_at > next_tick;
+        });
+    
+    const auto due_count = static_cast<std::size_t>(
+        due_end - m_pending_commands.begin());
+
+    m_command_outcomes.reserve(m_command_outcomes.size() + due_count);
+
+    for (auto entry = m_pending_commands.begin(); entry != due_end; ++entry) {
+        const auto result = destroy_entity(entry->payload.target)
+            ? CommandExecution::accepted
+            : CommandExecution::missing_entity;
+        
+        m_command_outcomes.push_back(CommandOutcome{*entry, result});
+    }
+
+    m_pending_commands.erase(m_pending_commands.begin(), due_end);
+    m_current_tick = next_tick;
 }
 
 Tick Simulation::current_tick() const noexcept {
@@ -63,6 +97,11 @@ CommandSubmission Simulation::submit_command(Command command) {
     entry->second = command.sequence;
 
     return CommandSubmission::queued;
+}
+
+const std::vector<CommandOutcome>&
+Simulation::command_outcomes() const noexcept {
+    return m_command_outcomes;
 }
 
 }
