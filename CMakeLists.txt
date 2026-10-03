@@ -26,6 +26,15 @@ target_link_libraries(engine_scene PUBLIC EnTT::EnTT nlohmann_json::nlohmann_jso
 target_compile_features(engine_scene PUBLIC cxx_std_20)
 seed_warnings(engine_scene)
 
+add_library(supply_sim STATIC 
+    src/sim/Simulation.cpp
+    src/sim/SimulationScheduler.cpp
+)
+target_include_directories(supply_sim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(supply_sim PUBLIC EnTT::EnTT)
+target_compile_features(supply_sim PUBLIC cxx_std_20)
+seed_warnings(supply_sim)
+
 if(SEED_BUILD_SANDBOX)
     add_library(engine_render STATIC src/engine/Assets.cpp)
     target_link_libraries(engine_render PUBLIC engine_scene raylib)
@@ -57,4 +66,9 @@ if(SEED_BUILD_TESTS)
     list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
     include(Catch)
     catch_discover_tests(scene_tests)
+    add_executable(simulation_tests tests/simulation_tests.cpp)
+    target_link_libraries(simulation_tests
+        PRIVATE supply_sim Catch2::Catch2WithMain)
+    seed_warnings(simulation_tests)
+    catch_discover_tests(simulation_tests)
 endif()
