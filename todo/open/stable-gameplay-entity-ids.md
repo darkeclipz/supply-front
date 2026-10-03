@@ -6,16 +6,16 @@ Give simulation entities permanent identities independent of EnTT handles, as re
 
 Tutor checkpoint: active.
 
-- Current step: GameEntityId type verified by source review and successful Debug build. Simulation::create_entity allocation and its headless test proposed, not implemented.
-- Context: GameEntityId wraps std::uint64_t, defaults to zero, and has defaulted equality. Simulation includes it and retains a private registry. Next add [[nodiscard]] GameEntityId create_entity(), private std::uint64_t m_last_entity_id = 0, and creation storing the ID as an EnTT component. Check max before increment; increment allocation state only after successful component insertion and destroy the new EnTT entity if insertion throws. Lookup and destruction APIs follow later; no GameSession mutation API in this task.
-- Verification: On 2026-10-03, agent reviewed include/sim/GameEntityId.hpp and Simulation.hpp, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 21 tests passed. Allocation behavior is not implemented or tested yet.
-- Next action: Programmer adds create_entity declaration and last-ID member in include/sim/Simulation.hpp, defines it in src/sim/Simulation.cpp with limits/stdexcept includes, and adds a test in tests/simulation_tests.cpp asserting IDs 1/2/3 and identical allocation in two fresh simulations. Rebuild Debug and run ctest; expected 22 tests. Then review and add stable-ID lookup/destruction.
+- Current step: Allocation and direct <limits> include verified. Add a private stable-ID index and entity_exists query; proposed, not implemented.
+- Context: Add std::unordered_map<std::uint64_t, entt::entity> m_entities_by_id to Simulation, indexed by GameEntityId::value. Insert the mapping inside create_entity's existing try block after attaching the ID component, so failed insertion destroys the unfinished entity and leaves the last-ID counter unchanged. Add [[nodiscard]] bool entity_exists(GameEntityId id) const, implemented using contains(id.value). Use the index only for lookup, not gameplay iteration order. Destruction follows after lookup verification; keep GameSession mutation APIs out of scope.
+- Verification: On 2026-10-03, agent confirmed <limits> replaced <climits>, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 22 tests passed. Allocation overflow guard is source-reviewed; lookup is not implemented or verified yet.
+- Next action: Programmer adds unordered_map include, index member, entity_exists declaration/definition, and index insertion in create_entity. Add a headless test checking invalid zero, unknown 999, and both created IDs; rebuild Debug and run ctest (23 expected). Then add destruction and non-reuse tests.
 - Blocker: None.
 
 ## Acceptance criteria
 
 - [x] GameEntityId is a distinct equality-comparable 64-bit value type; zero represents an invalid ID.
-- [ ] Simulation creates entities with unique, nonzero, monotonically allocated IDs independent of EnTT handles; exhausted IDs are rejected before wraparound.
+- [x] Simulation creates entities with unique, nonzero, monotonically allocated IDs independent of EnTT handles; exhausted IDs are rejected before wraparound.
 - [ ] Existence lookup and destruction use stable IDs without exposing registry mutation; destroyed IDs are not reused and unknown IDs are handled safely.
 - [ ] Headless tests verify deterministic allocation, lookup, destruction, and non-reuse.
 - [ ] Debug build and all tests pass.

@@ -186,3 +186,17 @@ TEST_CASE("Gameplay IDs allocate deterministically", "[simulation][identity]") {
         REQUIRE(first_id == second_id);
     }
 }
+
+TEST_CASE("Simulation looks up stable gameplay IDs", "[simulation][identity]") {
+    sim::Simulation simulation;
+
+    REQUIRE_FALSE(simulation.entity_exists(sim::GameEntityId{}));
+    REQUIRE_FALSE(simulation.entity_exists(sim::GameEntityId{999}));
+
+    const auto first = simulation.create_entity();
+    const auto second = simulation.create_entity();
+
+    REQUIRE(simulation.entity_exists(first));
+    REQUIRE(simulation.entity_exists(second));
+    REQUIRE_FALSE(simulation.entity_exists(sim::GameEntityId{999}));
+}

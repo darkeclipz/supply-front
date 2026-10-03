@@ -1,6 +1,6 @@
 #include "sim/Simulation.hpp"
 
-#include <climits>
+#include <limits>
 #include <stdexcept>
 
 namespace sim {
@@ -23,6 +23,7 @@ GameEntityId Simulation::create_entity() {
 
     try {
         m_registry.emplace<GameEntityId>(entity, id);
+        m_entities_by_id.emplace(id.value, entity);
     } catch (...) {
         m_registry.destroy(entity);
         throw;
@@ -30,6 +31,10 @@ GameEntityId Simulation::create_entity() {
 
     m_last_entity_id = id.value;
     return id;
+}
+
+bool Simulation::entity_exists(GameEntityId id) const {
+    return m_entities_by_id.contains(id.value);
 }
 
 }
