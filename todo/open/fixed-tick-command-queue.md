@@ -6,10 +6,10 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: active.
 
-- Current step: Post-execution tick/sequence validation test proposed; not present in the saved workspace despite the programmer reporting done.
-- Context: tests/simulation_tests.cpp still ends with the verified same-tick ordering test. No test titled "Completed commands cannot reuse their sequence" or equivalent post-execution assertions were found under tests. The next step remains adding that test: execute sequence 1, advance to tick 2, reject tick 1 and tick 2 using fresh sequence 2, reject sequence 1 for future tick 3, then accept and execute sequence 2 at tick 3.
-- Verification: On 2026-10-03, agent inspected the saved test file and searched tests for the proposed test, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 27 existing tests passed. The expected 28th test is absent; user may have an unsaved editor buffer. No new validation behavior was verified this turn.
-- Next action: Programmer saves/adds the proposed "Completed commands cannot reuse their sequence" test in tests/simulation_tests.cpp, rebuilds Debug, and runs ctest (28 expected). Then verify the saved test before advancing to scheduler equivalence and GameSession forwarding.
+- Current step: Post-execution validation test now saved; fix its final accessor call before verification.
+- Context: The new test matches the intended past/current tick and reused-sequence checks. Final assertion at tests/simulation_tests.cpp:392 uses simulation.command_outcomes[1] instead of simulation.command_outcomes()[1]. command_outcomes is a method; invoke it before indexing the returned vector. No production-code changes needed.
+- Verification: On 2026-10-03, agent confirmed the saved test and ran cmake --build --preset debug -j 2. Compilation failed at line 392 with invalid array subscript on an unresolved function type. Tests were not run after build failure. Previous 27-test pass predates this new test.
+- Next action: Programmer inserts () after command_outcomes in the final assertion, saves, rebuilds Debug, and runs ctest (28 expected). Then review validation behavior and continue with scheduler equivalence and GameSession forwarding.
 - Blocker: None.
 
 ## Acceptance criteria

@@ -389,5 +389,5 @@ TEST_CASE("Completed commands cannot reuse their sequence", "[simulation][comman
     REQUIRE_FALSE(simulation.entity_exists(second));
     REQUIRE(simulation.command_outcomes().size() == 2);
     REQUIRE(simulation.command_outcomes()[1].command.sequence == 2);
-    REQUIRE(simulation.command_outcomes[1].result == sim::CommandExecution::accepted);
+    REQUIRE(simulation.command_outcomes()[1].result == sim::CommandExecution::accepted);
 }
