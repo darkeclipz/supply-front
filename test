@@ -1,0 +1,2 @@
+cmake --build --preset debug -j 2
+ctest --preset debug

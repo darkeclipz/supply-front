@@ -90,3 +90,16 @@ TEST_CASE("Frame duration partitioning preserve", "[simulation][scheduler]") {
     REQUIRE(coarse_simulation.current_tick() == 11);
     REQUIRE(fine_simulation.current_tick() == 11);
 }
+
+TEST_CASE("Double speed preserves partial tick progress", "[simulation][scheduler]") {
+    using namespace std::chrono_literals;
+
+    sim::Simulation simulation;
+    sim::SimulationScheduler scheduler;
+
+    scheduler.advance(simulation, 25ms, false, 2);
+    REQUIRE(simulation.current_tick() == 0);
+
+    scheduler.advance(simulation, 25ms, false, 2);
+    REQUIRE(simulation.current_tick() == 1);
+}
