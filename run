@@ -1,0 +1,3 @@
+cmake --build --preset debug -j 2
+ctext --preset debug
+./build/debug/bin/sandbox

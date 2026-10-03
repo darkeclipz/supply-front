@@ -146,12 +146,19 @@ public:
     Editor& operator=(const Editor&) = delete;
 
     void draw(entt::registry& world, engine::AssetCache& assets,
-              const Options& options, bool& playing) {
+              const Options& options, bool& playing, int& simulation_speed) {
         ImGui::SetNextWindowPos(ImVec2{16.0f, 16.0f}, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2{330.0f, 600.0f}, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Scene inspector")) {
             ImGui::Text("%d FPS | %zu cached models", GetFPS(), assets.size());
             ImGui::Checkbox("Play fixed-step simulation", &playing);
+            ImGui::RadioButton("1x", &simulation_speed, 1);
+            ImGui::SameLine();
+            ImGui::RadioButton("2x", &simulation_speed, 2);
+            ImGui::SameLine();
+            ImGui::RadioButton("4x", &simulation_speed, 4);
+            ImGui::SameLine();
+            ImGui::RadioButton("8x", &simulation_speed, 8);
             ImGui::TextWrapped("Right-drag outside this panel to orbit. Scroll to zoom.");
             ImGui::Separator();
             if (ImGui::Button("Save snapshot")) {
@@ -228,6 +235,7 @@ int run(const Options& options) {
     Editor editor;
 #endif
     bool playing = true;
+    int simulation_speed = 1;
     bool running = true;
     int frames = 0;
     constexpr double step = 1.0 / 60.0;
@@ -247,13 +255,13 @@ int run(const Options& options) {
 #if SEED_WITH_EDITOR
         // Backend gathers input and begins an ImGui frame. Its draw data is rendered last.
         rlImGuiBegin();
-        editor.draw(world, assets, options, playing);
+        editor.draw(world, assets, options, playing, simulation_speed);
         mouseCaptured = ImGui::GetIO().WantCaptureMouse;
         keyboardCaptured = ImGui::GetIO().WantCaptureKeyboard;
 #endif
         if (!keyboardCaptured && IsKeyPressed(KEY_ESCAPE)) running = false;
         camera.update(mouseCaptured);
-        session.advance(simulation_elapsed, !playing);
+        session.advance(simulation_elapsed, !playing, simulation_speed);
         if (playing) {
             accumulator += elapsed;
             int steps = 0;
