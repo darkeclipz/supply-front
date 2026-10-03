@@ -1,5 +1,6 @@
 #include "sim/Simulation.hpp"
 #include "sim/SimulationScheduler.hpp"
+#include "sim/Command.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
@@ -222,4 +223,40 @@ TEST_CASE("Destroyed gameplay IDs stay invalid", "[simulation][identity]") {
     REQUIRE_FALSE(simulation.destroy_entity(first));
     REQUIRE(simulation.entity_exists(replacement));
     REQUIRE(simulation.entity_exists(second));
+}
+
+TEST_CASE("Command submission validates tick and player sequence", "[simulation][commands]") {
+    sim::Simulation simulation;
+    const auto target = simulation.create_entity();
+    using Result = sim::CommandSubmission;
+
+    sim::Command command{
+        .execute_at = 0,
+        .player_id = 0,
+        .sequence = 1,
+        .payload = {target}
+    };
+
+    REQUIRE(simulation.submit_command(command) == Result::invalid_tick);
+
+    command.execute_at = 1;
+    command.sequence = 0;
+    REQUIRE(simulation.submit_command(command) == Result::invalid_sequence);
+
+    command.sequence = 1;
+    REQUIRE(simulation.submit_command(command) == Result::queued);
+    REQUIRE(simulation.entity_exists(target));
+    REQUIRE(simulation.current_tick() == 0);
+
+    REQUIRE(simulation.submit_command(command) == Result::invalid_sequence);
+
+    command.sequence = 3;
+    REQUIRE(simulation.submit_command(command) == Result::queued);
+
+    command.sequence = 2;
+    REQUIRE(simulation.submit_command(command) == Result::invalid_sequence);
+
+    command.player_id = 1;
+    command.sequence = 1;
+    REQUIRE(simulation.submit_command(command) == Result::queued);
 }

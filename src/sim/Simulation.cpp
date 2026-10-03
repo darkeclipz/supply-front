@@ -48,4 +48,21 @@ bool Simulation::destroy_entity(GameEntityId id) {
     return true;
 }
 
+CommandSubmission Simulation::submit_command(Command command) {
+    if (command.execute_at <= m_current_tick) {
+        return CommandSubmission::invalid_tick;
+    }
+
+    const auto entry = m_last_command_sequence.try_emplace(command.player_id, 0).first;
+
+    if (command.sequence <= entry->second) {
+        return CommandSubmission::invalid_sequence;
+    }
+
+    m_pending_commands.push_back(command);
+    entry->second = command.sequence;
+
+    return CommandSubmission::queued;
+}
+
 }
