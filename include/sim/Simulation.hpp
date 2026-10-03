@@ -13,8 +13,10 @@ class Simulation {
 public:
     void tick();
     [[nodiscard]] Tick current_tick() const noexcept;
+    [[nodiscard]] GameEntityId create_entity();
 private:
     entt::registry m_registry;
     Tick m_current_tick = 0;
+    std::uint64_t m_last_entity_id = 0;
 };
 }

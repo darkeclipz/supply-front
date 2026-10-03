@@ -173,3 +173,16 @@ TEST_CASE("Frame partitioning preserves progress at each speed", "[simulation][s
         REQUIRE(fine_simulation.current_tick() == sim::Tick{11} * tick_speed);
     }
 }
+
+TEST_CASE("Gameplay IDs allocate deterministically", "[simulation][identity]") {
+    sim::Simulation first;
+    sim::Simulation second;
+
+    for (std::uint64_t expected = 1; expected <= 3; ++expected) {
+        const auto first_id = first.create_entity();
+        const auto second_id = second.create_entity();
+        
+        REQUIRE(first_id.value == expected);
+        REQUIRE(first_id == second_id);
+    }
+}
