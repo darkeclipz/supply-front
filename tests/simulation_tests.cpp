@@ -103,3 +103,42 @@ TEST_CASE("Double speed preserves partial tick progress", "[simulation][schedule
     scheduler.advance(simulation, 25ms, false, 2);
     REQUIRE(simulation.current_tick() == 1);
 }
+
+TEST_CASE("Speed changes preserve progress across pause", "[simulation][scheduler]") {
+    using namespace std::chrono_literals;
+
+    sim::Simulation simulation;
+    sim::SimulationScheduler scheduler;
+
+    scheduler.advance(simulation, 50ms);
+    REQUIRE(simulation.current_tick() == 0);
+
+    scheduler.advance(simulation, 5s, true, 4);
+    REQUIRE(simulation.current_tick() == 0);
+
+    scheduler.advance(simulation, 25ms, false, 2);
+    REQUIRE(simulation.current_tick() == 1);
+
+    scheduler.advance(simulation, 25ms, false, 4);
+    REQUIRE(simulation.current_tick() == 2);
+}
+
+TEST_CASE("Scheduler validates speed bounds even while paused", "[simulation][scheduler]") {
+    using namespace std::chrono_literals;
+
+    sim::Simulation simulation;
+    sim::SimulationScheduler scheduler;
+
+    for (int speed : {-1, 0, 17}) {
+        REQUIRE_THROWS_AS(
+            scheduler.advance(simulation, 100ms, false, speed),
+            std::invalid_argument);
+        REQUIRE_THROWS_AS(
+            scheduler.advance(simulation, 100ms, true, speed),
+            std::invalid_argument);
+    }
+    REQUIRE(simulation.current_tick() == 0);
+
+    scheduler.advance(simulation, 100ms, false, 16);
+    REQUIRE(simulation.current_tick() == 16);
+}
