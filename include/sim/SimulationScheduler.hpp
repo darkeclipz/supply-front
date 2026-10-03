@@ -7,8 +7,7 @@ namespace sim {
 
 class SimulationScheduler {
 public:
-    void advance(Simulation& simulation, 
-                 std::chrono::nanoseconds elapsed);
+    void advance(Simulation& simulation, std::chrono::nanoseconds elapsed, bool paused = false);
 
 private:
     std::chrono::nanoseconds m_accumulator{0};

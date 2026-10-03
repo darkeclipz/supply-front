@@ -1,5 +1,6 @@
 #include "engine/Assets.hpp"
 #include "engine/Scene.hpp"
+#include "sim/SimulationScheduler.hpp"
 
 #include <raylib.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -20,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <chrono>
 
 namespace {
 namespace fs = std::filesystem;
@@ -230,9 +232,15 @@ int run(const Options& options) {
     int frames = 0;
     constexpr double step = 1.0 / 60.0;
     double accumulator = 0.0;
+    sim::Simulation simulation;
+    sim::SimulationScheduler scheduler;
 
     while (running && !WindowShouldClose()) {
-        const double elapsed = std::clamp(static_cast<double>(GetFrameTime()), 0.0, 0.25);
+        const double frame_elapsed = std::max(static_cast<double>(GetFrameTime()), 0.0);
+        const double elapsed = std::clamp(frame_elapsed, 0.0, 0.25);
+        const auto simulation_elapsed = 
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::duration<double>{frame_elapsed});
         BeginDrawing();
         ClearBackground(Color{28, 31, 40, 255});
         bool mouseCaptured = false;
@@ -246,6 +254,7 @@ int run(const Options& options) {
 #endif
         if (!keyboardCaptured && IsKeyPressed(KEY_ESCAPE)) running = false;
         camera.update(mouseCaptured);
+        scheduler.advance(simulation, simulation_elapsed, !playing);
         if (playing) {
             accumulator += elapsed;
             int steps = 0;
@@ -263,7 +272,9 @@ int run(const Options& options) {
         DrawGrid(20, 1.0f);
         engine::drawScene(world, assets);
         EndMode3D();
-        DrawText("C++20 / raylib / EnTT / JSON", 16, GetScreenHeight() - 30, 18, RAYWHITE);
+        const auto tick_label = std::string{"Simulation tick: "}
+            + std::to_string(simulation.current_tick());
+        DrawText(tick_label.c_str(), 16, GetScreenHeight() - 55, 18, RAYWHITE);
 #if SEED_WITH_EDITOR
         rlImGuiEnd();
 #else

@@ -4,12 +4,14 @@
 
 namespace sim {
 
-void SimulationScheduler::advance(
-    Simulation& simulation,
-    std::chrono::nanoseconds elapsed)
+void SimulationScheduler::advance(Simulation& simulation, std::chrono::nanoseconds elapsed, bool paused)
 {
     if (elapsed < std::chrono::nanoseconds::zero()) {
         throw std::invalid_argument("elapsed time cannot be negative");
+    }
+
+    if (paused) {
+        return;
     }
 
     constexpr auto tick_duration =
