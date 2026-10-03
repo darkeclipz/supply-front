@@ -447,10 +447,15 @@ TEST_CASE("Command outcomes survive frame pause and speed changes", "[simulation
     REQUIRE(reference.current_tick() == 4);
     REQUIRE(varied.current_tick() == 4);
     REQUIRE_FALSE(reference.entity_exists(reference_target));
-    REQUIRE_FALSE(reference.entity_exists(varied_target));
+    REQUIRE_FALSE(varied.entity_exists(varied_target));
 
     const auto& expected = reference.command_outcomes();
     const auto& actual = varied.command_outcomes();
+
+    REQUIRE(expected.size() == 2);
+    REQUIRE(actual.size() == expected.size());
+    REQUIRE(expected[0].result == sim::CommandExecution::accepted);
+    REQUIRE(expected[1].result == sim::CommandExecution::missing_entity);
 
     for (std::size_t i = 0; i < expected.size(); ++i) {
         CAPTURE(i);

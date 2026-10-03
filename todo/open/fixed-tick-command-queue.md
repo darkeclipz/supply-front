@@ -4,13 +4,12 @@
 
 Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-tick submission, execution ordered by tick/player/per-player sequence, and recorded accepted/rejected outcomes. Exercise the queue with a development-only DestroyEntityCommand targeting a stable gameplay ID. This fixture is not a player-authorized gameplay action; ownership, visibility, and real gameplay commands follow when their state exists.
 
-Tutor checkpoint: active.
+Tutor checkpoint: paused.
 
-- Current step: Post-execution tick/sequence validation verified. Add scheduler partition/pause/speed equivalence test; proposed, not implemented.
-- Context: Test two fresh simulations with identical target IDs and commands at ticks 2 and 4 targeting the same entity. Reference scheduler gets 450 ms at 1x. Varied scheduler gets five 5 ms frames at 1x, a paused 10 s at 4x (assert no tick/outcome/entity mutation), 25 ms at 1x, three 25 ms frames at 2x, five 10 ms frames at 4x, and 50 ms at 1x. Both accumulate 450 ms of simulation time, reach tick 4 with 50 ms remainder, and produce accepted then missing_entity outcomes. Compare all command fields and results, plus target existence. Advance both another 50 ms at 1x to verify matching remainder and no duplicate outcomes.
-- Verification: On 2026-10-03, agent confirmed the corrected accessor call, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 28 tests passed. New validation test proves past/current tick rejection, completed sequence non-reuse, and rejected submissions not consuming sequence 2. Command behavior across scheduler timing changes is not tested yet.
-- Next action: Programmer adds one scheduler equivalence test in tests/simulation_tests.cpp, rebuilds Debug, and runs ctest (29 expected). After this test is verified, pause this todo with GameSession forwarding still pending and switch to todo/open/graybox-map.md, as requested by the programmer. Do not close this todo while forwarding remains incomplete.
-- Plan update: Programmer explicitly chose to finish the scheduler equivalence test, then build a minimal graybox map before selectable-unit/right-click movement work. The equivalence test is not yet present in the saved tests/simulation_tests.cpp (checked this turn). GameSession forwarding is deferred until gameplay commands need it.
+- Current step: Equivalence test size/result guards implemented and verified; one target-existence assertion correction remains. Paused while graybox map is active.
+- Context: The test now checks outcome sizes before indexing and explicit accepted/missing_entity results. It still uses REQUIRE_FALSE(reference.entity_exists(varied_target)); replace reference with varied on that line. Both fresh simulations assign the same numeric ID, so the current assertion checks the reference twice. GameSession forwarding remains deferred until gameplay needs it.
+- Verification: On 2026-10-04, agent reviewed saved test, ran cmake --build --preset debug -j 2 successfully without compiler diagnostics and ctest --preset debug: all 29 tests passed. Outcome comparison and size/result guards verified. Final varied-target absence remains unchecked because of the wrong simulation reference.
+- Next action: Programmer changes the varied_target assertion to varied.entity_exists(varied_target), then continues the ground-plane/camera step in todo/open/graybox-map.md. Rerun existing build/tests after edits. Resume GameSession forwarding when movement needs it; do not close this todo yet.
 - Blocker: None.
 
 ## Acceptance criteria
