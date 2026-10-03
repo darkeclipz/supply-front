@@ -6,10 +6,10 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: active.
 
-- Current step: Submission storage and validation verified. Add due-tick execution and read-only outcome history; proposed, not implemented.
-- Context: Submission requires future tick and increasing per-player sequence; rejected submissions do not consume sequences. Add CommandExecution { accepted, missing_entity }, CommandOutcome { Command command; CommandExecution result; }, private vector<CommandOutcome> m_command_outcomes, and const-reference command_outcomes() accessor. tick guards tick overflow, sorts pending commands lexicographically by execute_at/player_id/sequence, finds the due prefix for current_tick + 1, reserves outcome capacity before mutations, destroys each due target and records its result, erases processed commands, then commits the tick. Outcome history is cumulative for this small foundation; retention policy follows later. Development-only destroy fixture has no ownership/visibility checks.
-- Verification: On 2026-10-03, agent reviewed source and full submission test, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 25 tests passed. Tick 0, sequence 0, duplicate/lower sequences, independent players, and absence of immediate mutation verified. Execution/order/future retention are not implemented yet.
-- Next action: Programmer adds outcome types/accessor/storage and replaces tick with ordered due execution (algorithm/tuple includes). Add one test scheduling two destroys of the same target at ticks 2 and 3; check no execution at tick 1, accepted destruction at tick 2, missing_entity at tick 3, and no repeated outcomes at tick 4. Rebuild Debug and run ctest (26 expected). Then add same-tick ordering, sequence reuse/late-tick tests, scheduler equivalence, and GameSession forwarding.
+- Current step: Due-tick execution and outcome recording implemented and timing test verified. Correct the overflow exception throw; proposed, not implemented.
+- Context: tick sorts by execute_at/player_id/sequence, executes the due prefix, reserves outcome storage before mutation, records accepted/missing_entity, removes processed commands, and advances the completed tick. Source currently says throw new std::overflow_error in tick's exhaustion guard; change to throw std::overflow_error so it throws an exception object, not a heap-allocated pointer. The pointer escapes catch(const std::exception&) and leaks without manual deletion. Creation already throws by value correctly. Outcome history is cumulative. Same-tick ordering, scheduler equivalence, and GameSession forwarding remain later steps.
+- Verification: On 2026-10-03, agent reviewed source and timing test, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 26 tests passed. Test verifies no early execution, retained future command, accepted tick-2 destruction, tick-3 missing target, and no repeated outcomes. Tests do not exercise tick exhaustion; the throw-new defect was found by source review. Comparator ordering is source-reviewed but not yet behavior-tested.
+- Next action: Programmer removes new from throw in src/sim/Simulation.cpp::tick and reruns Debug build and ctest (26 expected). Then add a same-tick ordering test with interleaved player submissions, followed by post-execution sequence-reuse/late-tick tests, scheduler equivalence, and GameSession forwarding.
 - Blocker: None.
 
 ## Acceptance criteria
@@ -17,7 +17,7 @@ Tutor checkpoint: active.
 - [x] Command data records execution tick, player ID, per-player sequence, and a stable-ID payload independently of Simulation.hpp.
 - [x] Submission queues commands without immediately changing entities and reports reasons for invalid tick or sequence; per-player sequence identities cannot be duplicated or reused.
 - [ ] Each tick executes only commands due for that tick in deterministic player/sequence order and preserves future commands.
-- [ ] Execution records accepted/rejected outcomes, including a missing-entity reason, using the development-only destruction fixture.
+- [x] Execution records accepted/rejected outcomes, including a missing-entity reason, using the development-only destruction fixture.
 - [ ] GameSession forwards command submission and exposes read-only results without exposing Simulation or registry mutation.
 - [ ] Headless tests verify timing, ordering across players, sequence validation, future retention, missing targets, and equivalent outcomes across scheduler frame partitions and pause/speed changes.
 - [ ] Debug build and all tests pass.

@@ -9,7 +9,7 @@ namespace sim {
 
 void Simulation::tick() {
     if (m_current_tick == std::numeric_limits<Tick>::max()) {
-        throw new std::overflow_error("simulation tick exhausted");
+        throw std::overflow_error("simulation tick exhausted");
     }
 
     const Tick next_tick = m_current_tick + 1;
