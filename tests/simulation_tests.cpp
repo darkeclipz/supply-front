@@ -348,3 +348,46 @@ TEST_CASE("Commands execute in tick player sequence order", "[simulation][comman
     REQUIRE(outcomes[4].command.sequence == 1);
     REQUIRE(outcomes[4].result == sim::CommandExecution::missing_entity);
 }
+
+TEST_CASE("Completed commands cannot reuse their sequence", "[simulation][commands]") {
+    sim::Simulation simulation;
+    const auto first = simulation.create_entity();
+    const auto second = simulation.create_entity();
+    using Result = sim::CommandSubmission;
+
+    sim::Command command{
+        .execute_at = 1,
+        .player_id = 0,
+        .sequence = 1,
+        .payload = {first}
+    };
+
+    REQUIRE(simulation.submit_command(command) == Result::queued);
+    simulation.tick();
+    simulation.tick();
+    REQUIRE(simulation.current_tick() == 2);
+
+    command.payload.target = second;
+    command.sequence = 2;
+
+    // Reject a past tick and the current tick.
+    REQUIRE(simulation.submit_command(command) == Result::invalid_tick);
+    command.execute_at = 2;
+    REQUIRE(simulation.submit_command(command) == Result::invalid_tick);
+
+    // Moving a completed sequence to a future tick cannot reuse it.
+    command.execute_at = 3;
+    command.sequence = 1;
+    REQUIRE(simulation.submit_command(command) == Result::invalid_sequence);
+
+    // Rejected sibmissions did not consume sequence 2.
+    command.sequence = 2;
+    REQUIRE(simulation.submit_command(command) == Result::queued);
+    REQUIRE(simulation.entity_exists(second));
+
+    simulation.tick();
+    REQUIRE_FALSE(simulation.entity_exists(second));
+    REQUIRE(simulation.command_outcomes().size() == 2);
+    REQUIRE(simulation.command_outcomes()[1].command.sequence == 2);
+    REQUIRE(simulation.command_outcomes[1].result == sim::CommandExecution::accepted);
+}

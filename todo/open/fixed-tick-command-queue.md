@@ -6,10 +6,10 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: active.
 
-- Current step: Interleaved ordering test corrected and verified. Add post-execution tick/sequence validation test; proposed, not implemented.
-- Context: Outcomes are sorted by tick/player/sequence; future commands retained. Corrected final assertion uses outcomes[4].result and missing_entity loop starts at 1. Next test must advance to tick 2, reject both past tick 1 and current tick 2 without consuming sequence 2, reject completed sequence 1 when resubmitted for future tick 3, then accept fresh sequence 2 for tick 3 and verify its execution. No production changes expected for this step.
-- Verification: On 2026-10-03, agent inspected corrections, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 27 tests passed. Ordering test confirms tick-1 identity order (0,2)/(0,3)/(1,1)/(1,2), accepted first execution, later missing targets, and retained tick-3 command despite earlier submission. Post-execution sequence reuse and nonzero past/current tick rejection are not specifically tested yet.
-- Next action: Programmer adds one post-execution validation test to tests/simulation_tests.cpp, rebuilds Debug, and runs ctest (28 expected). Then add scheduler partition/pause/speed equivalence tests and GameSession forwarding.
+- Current step: Post-execution tick/sequence validation test proposed; not present in the saved workspace despite the programmer reporting done.
+- Context: tests/simulation_tests.cpp still ends with the verified same-tick ordering test. No test titled "Completed commands cannot reuse their sequence" or equivalent post-execution assertions were found under tests. The next step remains adding that test: execute sequence 1, advance to tick 2, reject tick 1 and tick 2 using fresh sequence 2, reject sequence 1 for future tick 3, then accept and execute sequence 2 at tick 3.
+- Verification: On 2026-10-03, agent inspected the saved test file and searched tests for the proposed test, ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 27 existing tests passed. The expected 28th test is absent; user may have an unsaved editor buffer. No new validation behavior was verified this turn.
+- Next action: Programmer saves/adds the proposed "Completed commands cannot reuse their sequence" test in tests/simulation_tests.cpp, rebuilds Debug, and runs ctest (28 expected). Then verify the saved test before advancing to scheduler equivalence and GameSession forwarding.
 - Blocker: None.
 
 ## Acceptance criteria
