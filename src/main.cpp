@@ -299,6 +299,14 @@ int run(const Options& options) {
             Vector3{0.0f, 0.01f, 10.0f},
             BLUE);
         engine::drawScene(world, assets);
+        if (const auto position = session.position(session.prototype_entity())) {
+            const Vector3 center{
+                static_cast<float>(position->x) / 1000.0f,
+                0.5f,
+                static_cast<float>(position->z) / 1000.0f
+            };
+            DrawCube(center, 0.8f, 1.0f, 0.8f, BLUE);
+        }
         if (ground_hit.hit) {
             DrawSphere(
                 Vector3{ground_hit.point.x, 0.12f, ground_hit.point.z},
