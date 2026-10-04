@@ -109,14 +109,14 @@ public:
 };
 
 struct OrbitCamera {
-    Camera3D native{{6.0f, 4.0f, 6.0f}, {0.0f, 0.7f, 0.0f},
+    Camera3D native{{6.0f, 4.0f, 6.0f}, {0.0f, 0.0f, 0.0f},
                     {0.0f, 1.0f, 0.0f}, 45.0f, CAMERA_PERSPECTIVE};
     float yaw = 0.75f;
-    float pitch = 0.4f;
-    float distance = 8.0f;
+    float pitch = 0.9f;
+    float distance = 32.0f;
 
-    void update(bool mouseCaptured) {
-        if (!mouseCaptured) {
+    void update(bool mouse_captured) {
+        if (!mouse_captured) {
             if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
                 const auto delta = GetMouseDelta();
                 yaw -= delta.x * 0.006f;
@@ -250,17 +250,27 @@ int run(const Options& options) {
                 std::chrono::duration<double>{frame_elapsed});
         BeginDrawing();
         ClearBackground(Color{28, 31, 40, 255});
-        bool mouseCaptured = false;
-        bool keyboardCaptured = false;
+        bool mouse_captured = false;
+        bool keyboard_captured = false;
 #if SEED_WITH_EDITOR
         // Backend gathers input and begins an ImGui frame. Its draw data is rendered last.
         rlImGuiBegin();
         editor.draw(world, assets, options, playing, simulation_speed);
-        mouseCaptured = ImGui::GetIO().WantCaptureMouse;
-        keyboardCaptured = ImGui::GetIO().WantCaptureKeyboard;
+        mouse_captured = ImGui::GetIO().WantCaptureMouse;
+        keyboard_captured = ImGui::GetIO().WantCaptureKeyboard;
 #endif
-        if (!keyboardCaptured && IsKeyPressed(KEY_ESCAPE)) running = false;
-        camera.update(mouseCaptured);
+        if (!keyboard_captured && IsKeyPressed(KEY_ESCAPE)) running = false;
+        camera.update(mouse_captured);
+        RayCollision ground_hit{};
+        if (!mouse_captured) {
+            const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera.native);
+            ground_hit = GetRayCollisionQuad(
+                ray,
+                Vector3{-10.0f, 0.0f, -10.0f},
+                Vector3{-10.0f, 0.0f, 10.0f},
+                Vector3{10.0f, 0.0f, 10.0f},
+                Vector3{10.0f, 0.0f, -10.0f});
+        }
         session.advance(simulation_elapsed, !playing, simulation_speed);
         if (playing) {
             accumulator += elapsed;
@@ -276,8 +286,25 @@ int run(const Options& options) {
             accumulator = 0.0;
         }
         BeginMode3D(camera.native);
-        DrawGrid(20, 1.0f);
+        DrawPlane(
+            Vector3{0.0f, 0.0f, 0.0f},
+            Vector2{20.0f, 20.0f},
+            Color{74, 83, 67, 255});
+        DrawLine3D(
+            Vector3{-10.0f, 0.01f, 0.0f},
+            Vector3{10.0f, 0.01f, 0.0f},
+            RED);
+        DrawLine3D(
+            Vector3{0.0f, 0.01f, -10.0f},
+            Vector3{0.0f, 0.01f, 10.0f},
+            BLUE);
         engine::drawScene(world, assets);
+        if (ground_hit.hit) {
+            DrawSphere(
+                Vector3{ground_hit.point.x, 0.12f, ground_hit.point.z},
+                0.12f,
+                YELLOW);
+        }
         EndMode3D();
         const auto tick_label = std::string{"Simulation tick: "}
             + std::to_string(session.current_tick());

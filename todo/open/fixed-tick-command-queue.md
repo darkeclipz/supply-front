@@ -6,10 +6,10 @@ Introduce deterministic command scheduling using docs/SYSTEM-DESIGN.md: future-t
 
 Tutor checkpoint: paused.
 
-- Current step: Scheduler equivalence test fully corrected and verified. Paused while graybox map is active; GameSession forwarding remains pending.
+- Current step: Scheduler equivalence test fully corrected and verified. Paused while ground picking is active; GameSession forwarding remains pending.
 - Context: Test correctly checks each simulation's target absence, guards outcome indexing with sizes, compares every command field/result, explicitly expects accepted then missing_entity, and confirms matching tick/remainder with no repeated outcomes after another advance. Development destruction fixture remains a headless harness action.
 - Verification: On 2026-10-04, agent confirmed REQUIRE_FALSE(varied.entity_exists(varied_target)), ran cmake --build --preset debug -j 2 successfully and ctest --preset debug: all 29 tests passed. Command timing, ordering, validation, and scheduler partition/pause/speed equivalence now have test evidence.
-- Next action: Continue the ground-plane/camera step in todo/open/graybox-map.md. Resume GameSession submission/read-only outcome forwarding when movement needs application access; do not close this todo until forwarding is complete.
+- Next action: Continue todo/open/ground-picking.md after the verified graybox map. Resume GameSession submission/read-only outcome forwarding when movement needs application access; do not close this todo until forwarding is complete.
 - Blocker: None.
 
 ## Acceptance criteria
