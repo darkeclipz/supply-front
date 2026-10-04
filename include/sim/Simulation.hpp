@@ -3,6 +3,7 @@
 #include "sim/GameEntityId.hpp"
 #include "sim/Tick.hpp"
 #include "sim/Command.hpp"
+#include "sim/Position.hpp"
 
 #include <cstdint>
 #include <entt/entt.hpp>
@@ -15,7 +16,7 @@ class Simulation {
 public:
     void tick();
     [[nodiscard]] Tick current_tick() const noexcept;
-    [[nodiscard]] GameEntityId create_entity();
+    [[nodiscard]] GameEntityId create_entity(Position position = {});
     [[nodiscard]] bool entity_exists(GameEntityId id) const;
     [[nodiscard]] bool destroy_entity(GameEntityId id);
     [[nodiscard]] CommandSubmission submit_command(Command command);
