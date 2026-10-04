@@ -35,7 +35,10 @@ target_link_libraries(supply_sim PUBLIC EnTT::EnTT)
 target_compile_features(supply_sim PUBLIC cxx_std_20)
 seed_warnings(supply_sim)
 
-add_library(supply_session STATIC src/app/GameSession.cpp)
+add_library(supply_session STATIC
+    src/app/GameSession.cpp
+    src/app/Selection.cpp
+)
 target_link_libraries(supply_session PUBLIC supply_sim)
 seed_warnings(supply_session)
 
@@ -76,4 +79,9 @@ if(SEED_BUILD_TESTS)
         PRIVATE supply_sim Catch2::Catch2WithMain)
     seed_warnings(simulation_tests)
     catch_discover_tests(simulation_tests)
+    add_executable(selection_tests tests/selection_tests.cpp)
+    target_link_libraries(selection_tests
+        PRIVATE supply_session Catch2::Catch2WithMain)
+    seed_warnings(selection_tests)
+    catch_discover_tests(selection_tests)
 endif()
