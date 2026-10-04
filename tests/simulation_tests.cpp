@@ -473,3 +473,28 @@ TEST_CASE("Command outcomes survive frame pause and speed changes", "[simulation
     REQUIRE(expected.size() == 2);
     REQUIRE(actual.size() == 2);
 }
+
+TEST_CASE("Position lookup preserves entity state and lifetime", "[simulation][position]") {
+    sim::Simulation simulation;
+
+    const sim::Position first_position{-4000, 3000};
+    const sim::Position second_position{2000, -1000};
+    const auto first = simulation.create_entity(first_position);
+    const auto second = simulation.create_entity(second_position);
+    const auto origin = simulation.create_entity();
+
+    REQUIRE(simulation.position(first) == first_position);
+    REQUIRE(simulation.position(second) == second_position);
+    REQUIRE(simulation.position(origin) == sim::Position{});
+    REQUIRE_FALSE(simulation.position(sim::GameEntityId{}).has_value());
+    REQUIRE_FALSE(simulation.position(sim::GameEntityId{999}).has_value());
+
+    auto copy = simulation.position(first);
+    REQUIRE(copy.has_value());
+    copy->x = 9000;
+    REQUIRE(simulation.position(first) == first_position);
+
+    REQUIRE(simulation.destroy_entity(first));
+    REQUIRE_FALSE(simulation.position(first).has_value());
+    REQUIRE(simulation.position(second) == second_position);
+}

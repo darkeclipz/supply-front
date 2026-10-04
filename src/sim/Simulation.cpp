@@ -72,6 +72,15 @@ bool Simulation::entity_exists(GameEntityId id) const {
     return m_entities_by_id.contains(id.value);
 }
 
+std::optional<Position> Simulation::position(GameEntityId id) const {
+    const auto found = m_entities_by_id.find(id.value);
+    if (found == m_entities_by_id.end()) {
+        return std::nullopt;
+    }
+
+    return m_registry.get<Position>(found->second);
+}
+
 bool Simulation::destroy_entity(GameEntityId id) {
     const auto found = m_entities_by_id.find(id.value);
     if (found == m_entities_by_id.end()) {

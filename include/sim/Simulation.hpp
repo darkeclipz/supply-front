@@ -21,6 +21,7 @@ public:
     [[nodiscard]] bool destroy_entity(GameEntityId id);
     [[nodiscard]] CommandSubmission submit_command(Command command);
     [[nodiscard]] const std::vector<CommandOutcome>& command_outcomes() const noexcept;
+    [[nodiscard]] std::optional<Position> position(GameEntityId id) const;
 private:
     entt::registry m_registry;
     Tick m_current_tick = 0;
