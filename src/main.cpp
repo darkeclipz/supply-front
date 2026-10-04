@@ -1,6 +1,7 @@
 #include "engine/Assets.hpp"
 #include "engine/Scene.hpp"
 #include "app/GameSession.hpp"
+#include "app/Selection.hpp"
 
 #include <raylib.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -241,6 +242,7 @@ int run(const Options& options) {
     constexpr double step = 1.0 / 60.0;
     double accumulator = 0.0;
     app::GameSession session;
+    app::Selection selection;
 
     while (running && !WindowShouldClose()) {
         const double frame_elapsed = std::max(static_cast<double>(GetFrameTime()), 0.0);
@@ -299,13 +301,30 @@ int run(const Options& options) {
             Vector3{0.0f, 0.01f, 10.0f},
             BLUE);
         engine::drawScene(world, assets);
+        const bool selection_click = !mouse_captured && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        if (selection_click) {
+            selection.clear();
+        }
         if (const auto position = session.position(session.prototype_entity())) {
             const Vector3 center{
                 static_cast<float>(position->x) / 1000.0f,
                 0.5f,
                 static_cast<float>(position->z) / 1000.0f
             };
+            if (selection_click) {
+                const BoundingBox bounds {
+                    Vector3{center.x - 0.4f, 0.0f, center.z - 0.4f},
+                    Vector3(center.x + 0.4f, 1.0f, center.z + 0.4f)
+                };
+                const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera.native);
+                if (GetRayCollisionBox(ray, bounds).hit) {
+                    selection.select(session.prototype_entity());
+                }
+            }
             DrawCube(center, 0.8f, 1.0f, 0.8f, BLUE);
+            if (selection.contains(session.prototype_entity())) {
+                DrawCubeWires(center, 0.84f, 1.04f, 0.84f, YELLOW);
+            }
         }
         if (ground_hit.hit) {
             DrawSphere(
