@@ -225,16 +225,121 @@ private:
 };
 #endif
 
+struct SelectionDrag {
+    bool active = false;
+    bool dragging = false;
+    bool completed = false;
+    bool additive = false;
+    Vector2 start{};
+    Vector2 current{};
+
+    Rectangle rectangle() const {
+        return Rectangle{
+            std::min(start.x, current.x),
+            std::min(start.y, current.y),
+            std::abs(current.x - start.x),
+            std::abs(current.y - start.y)
+        };
+    }
+
+    void update(bool mouse_captured, bool keyboard_captured) {
+        completed = false;
+
+        if (mouse_captured) {
+            active = false;
+            dragging = false;
+            return;
+        }
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            active = true;
+            dragging = false;
+            start = GetMousePosition();
+            current = start;
+            additive = !keyboard_captured
+                    && (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT));
+        }
+
+        if (!active) return;
+
+        current = GetMousePosition();
+        const float dx = current.x - start.x;
+        const float dy = current.y - start.y;
+
+        if (dx * dx + dy * dy >= 4.0f * 4.0f) {
+            dragging = true;
+        }
+
+        if (!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            completed = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+            active = false;
+        }
+    }
+
+    void draw() const {
+        if (!active || !dragging) return;
+
+        const Rectangle bounds = rectangle();
+        DrawRectangleRec(bounds, Fade(YELLOW, 0.12f));
+        DrawRectangleLinesEx(bounds, 1.0f, YELLOW);
+    }
+};
+
+void apply_box_selection(
+    const app::GameSession& session,
+    app::Selection& selection,
+    const Camera3D& camera,
+    const SelectionDrag& drag)
+{
+    if (!drag.additive) {
+        selection.clear();
+    }
+
+    const Rectangle bounds = drag.rectangle();
+    const Vector3 forward{
+        camera.target.x - camera.position.x,
+        camera.target.y - camera.position.y,
+        camera.target.z - camera.position.z
+    };
+
+    for (const auto id : session.prototype_entities()) {
+        const auto position = session.position(id);
+        if (!position) continue;
+
+        const Vector3 center {
+            static_cast<float>(position->x) / 1000.0f,
+            0.5f,
+            static_cast<float>(position->z) / 1000.0f
+        };
+        const Vector3 offset {
+            center.x - camera.position.x,
+            center.y - camera.position.y,
+            center.z - camera.position.z
+        };
+        const float depth =
+            offset.x * forward.x +
+            offset.y * forward.y +
+            offset.z * forward.z;
+
+        if (depth <= 0.0f) continue;
+
+        const Vector2 screen = GetWorldToScreen(center, camera);
+        if (CheckCollisionPointRec(screen, bounds)) {
+            selection.add(id);
+        }
+    }
+}
+
 void update_and_draw_prototypes(
     const app::GameSession& session,
     app::Selection& selection,
     const Camera3D& camera,
-    bool mouse_captured,
-    bool keyboard_captured)
+    const SelectionDrag& drag)
 {
-    const bool selection_click = !mouse_captured && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-
-    if (selection_click) {
+    if (drag.completed && drag.dragging) {
+        apply_box_selection(session, selection, camera, drag);
+    }
+    else if(drag.completed) {
         const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera);
         sim::GameEntityId closest{};
         float closest_distance = std::numeric_limits<float>::infinity();
@@ -256,9 +361,8 @@ void update_and_draw_prototypes(
                 closest_distance = hit.distance;
             }
         }
-        
-        const bool additive = !keyboard_captured && (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT));
-        if (additive) {
+
+        if (drag.additive) {
             selection.add(closest);
         }
         else {
@@ -304,6 +408,7 @@ int run(const Options& options) {
     double accumulator = 0.0;
     app::GameSession session;
     app::Selection selection;
+    SelectionDrag selection_drag;
 
     while (running && !WindowShouldClose()) {
         const double frame_elapsed = std::max(static_cast<double>(GetFrameTime()), 0.0);
@@ -324,6 +429,7 @@ int run(const Options& options) {
 #endif
         if (!keyboard_captured && IsKeyPressed(KEY_ESCAPE)) running = false;
         camera.update(mouse_captured);
+        selection_drag.update(mouse_captured, keyboard_captured);
         RayCollision ground_hit{};
         if (!mouse_captured) {
             const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera.native);
@@ -362,7 +468,7 @@ int run(const Options& options) {
             Vector3{0.0f, 0.01f, 10.0f},
             BLUE);
         engine::drawScene(world, assets);
-        update_and_draw_prototypes(session, selection, camera.native, mouse_captured, keyboard_captured);
+        update_and_draw_prototypes(session, selection, camera.native, selection_drag);
         if (ground_hit.hit) {
             DrawSphere(
                 Vector3{ground_hit.point.x, 0.12f, ground_hit.point.z},
@@ -370,6 +476,7 @@ int run(const Options& options) {
                 YELLOW);
         }
         EndMode3D();
+        selection_drag.draw();
         const auto tick_label = std::string{"Simulation tick: "}
             + std::to_string(session.current_tick());
         DrawText(tick_label.c_str(), 16, GetScreenHeight() - 55, 18, RAYWHITE);
