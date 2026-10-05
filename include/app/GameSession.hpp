@@ -17,12 +17,13 @@ public:
     [[nodiscard]] sim::Tick current_tick() const noexcept;
     [[nodiscard]] sim::CommandSubmission submit_command(sim::Command command);
     [[nodiscard]] const std::vector<sim::CommandOutcome>& command_outcomes() const noexcept;
-    [[nodiscard]] sim::GameEntityId prototype_entity() const noexcept;
+    [[nodiscard]] const std::vector<sim::GameEntityId>& prototype_entities() const noexcept;
     [[nodiscard]] std::optional<sim::Position> position(sim::GameEntityId id) const;
 private:
     sim::Simulation m_simulation;
     sim::SimulationScheduler m_scheduler;
-    sim::GameEntityId m_prototype_entity{};
+    std::vector<sim::GameEntityId> m_prototype_entities{};
+
 };
 
 }

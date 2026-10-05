@@ -3,11 +3,15 @@
 namespace app {
 
 GameSession::GameSession() {
-    m_prototype_entity = m_simulation.create_entity(sim::Position{2000, 1000});
+    m_prototype_entities = {
+        m_simulation.create_entity(sim::Position{2000, 1000}),
+        m_simulation.create_entity(sim::Position{-2000, -1000}),
+        m_simulation.create_entity(sim::Position{-2000, 3000})
+    };
 }
 
-sim::GameEntityId GameSession::prototype_entity() const noexcept {
-    return m_prototype_entity;
+const std::vector<sim::GameEntityId>& GameSession::prototype_entities() const noexcept {
+    return m_prototype_entities;
 }
 
 std::optional<sim::Position> GameSession::position(sim::GameEntityId id) const {

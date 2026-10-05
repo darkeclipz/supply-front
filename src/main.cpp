@@ -1,3 +1,4 @@
+#include "sim/GameEntityId.hpp"
 #include "engine/Assets.hpp"
 #include "engine/Scene.hpp"
 #include "app/GameSession.hpp"
@@ -23,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <chrono>
+#include <limits>
 
 namespace {
 namespace fs = std::filesystem;
@@ -223,6 +225,65 @@ private:
 };
 #endif
 
+void update_and_draw_prototypes(
+    const app::GameSession& session,
+    app::Selection& selection,
+    const Camera3D& camera,
+    bool mouse_captured,
+    bool keyboard_captured)
+{
+    const bool selection_click = !mouse_captured && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+    if (selection_click) {
+        const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera);
+        sim::GameEntityId closest{};
+        float closest_distance = std::numeric_limits<float>::infinity();
+
+        for (const auto id : session.prototype_entities()) {
+            const auto position = session.position(id);
+            if (!position) continue;
+
+            const float x = static_cast<float>(position->x) / 1000.0f;
+            const float z = static_cast<float>(position->z) / 1000.0f;
+            const BoundingBox bounds {
+                Vector3{x - 0.4f, 0.0f, z - 0.4f},
+                Vector3{x + 0.4f, 1.0f, z + 0.4f}
+            };
+            const RayCollision hit = GetRayCollisionBox(ray, bounds);
+
+            if (hit.hit && (hit.distance < closest_distance || (hit.distance == closest_distance && id.value < closest.value))) {
+                closest = id;
+                closest_distance = hit.distance;
+            }
+        }
+        
+        const bool additive = !keyboard_captured && (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT));
+        if (additive) {
+            selection.add(closest);
+        }
+        else {
+            selection.select(closest);
+        }
+    }
+
+    for (const auto id : session.prototype_entities()) {
+        const auto position = session.position(id);
+        if (!position) continue;
+
+        const Vector3 center {
+            static_cast<float>(position->x) / 1000.0f,
+            0.5f,
+            static_cast<float>(position->z) / 1000.0f
+        };
+
+        DrawCube(center, 0.8f, 1.0f, 0.8f, BLUE);
+
+        if (selection.contains(id)) {
+            DrawCubeWires(center, 0.84f, 1.04f, 0.84f, YELLOW);
+        }
+    }
+}
+
 int run(const Options& options) {
     spdlog::info("[engine] Starting sandbox; asset root: {}", options.assets.string());
     auto world = engine::loadScene(options.scene);
@@ -301,31 +362,7 @@ int run(const Options& options) {
             Vector3{0.0f, 0.01f, 10.0f},
             BLUE);
         engine::drawScene(world, assets);
-        const bool selection_click = !mouse_captured && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-        if (selection_click) {
-            selection.clear();
-        }
-        if (const auto position = session.position(session.prototype_entity())) {
-            const Vector3 center{
-                static_cast<float>(position->x) / 1000.0f,
-                0.5f,
-                static_cast<float>(position->z) / 1000.0f
-            };
-            if (selection_click) {
-                const BoundingBox bounds {
-                    Vector3{center.x - 0.4f, 0.0f, center.z - 0.4f},
-                    Vector3(center.x + 0.4f, 1.0f, center.z + 0.4f)
-                };
-                const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera.native);
-                if (GetRayCollisionBox(ray, bounds).hit) {
-                    selection.select(session.prototype_entity());
-                }
-            }
-            DrawCube(center, 0.8f, 1.0f, 0.8f, BLUE);
-            if (selection.contains(session.prototype_entity())) {
-                DrawCubeWires(center, 0.84f, 1.04f, 0.84f, YELLOW);
-            }
-        }
+        update_and_draw_prototypes(session, selection, camera.native, mouse_captured, keyboard_captured);
         if (ground_hit.hit) {
             DrawSphere(
                 Vector3{ground_hit.point.x, 0.12f, ground_hit.point.z},
@@ -354,6 +391,7 @@ int run(const Options& options) {
     }
     return 0;
 }
+
 } // namespace
 
 int main(int argc, char** argv) {
