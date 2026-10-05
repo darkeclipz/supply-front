@@ -149,7 +149,8 @@ public:
     Editor& operator=(const Editor&) = delete;
 
     void draw(entt::registry& world, engine::AssetCache& assets,
-              const Options& options, bool& playing, int& simulation_speed) {
+              const Options& options, bool& playing, int& simulation_speed,
+              bool& isometric_view) {
         ImGui::SetNextWindowPos(ImVec2{16.0f, 16.0f}, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2{330.0f, 600.0f}, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Scene inspector")) {
@@ -162,7 +163,11 @@ public:
             ImGui::RadioButton("4x", &simulation_speed, 4);
             ImGui::SameLine();
             ImGui::RadioButton("8x", &simulation_speed, 8);
-            ImGui::TextWrapped("Right-drag outside this panel to orbit. Scroll to zoom.");
+            ImGui::Checkbox("Isometric view (F6)", &isometric_view);
+            ImGui::TextWrapped(
+                isometric_view
+                    ? "Fixed isometric view. Press F6 for orbit."
+                    : "Right-drag to orbit. Scroll to zoom. F6 for isometric.");
             ImGui::Separator();
             if (ImGui::Button("Save snapshot")) {
                 try {
@@ -397,6 +402,14 @@ int run(const Options& options) {
     assets.preload(world);
     spdlog::info("[engine] Preloaded {} model(s)", assets.size());
     OrbitCamera camera;
+    const Camera3D isometric_camera{
+        {16.0f, 16.0f, 16.0f},
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        24.0f,
+        CAMERA_ORTHOGRAPHIC
+    };
+    bool isometric_view = true;
 #if SEED_WITH_EDITOR
     Editor editor;
 #endif
@@ -420,19 +433,25 @@ int run(const Options& options) {
         ClearBackground(Color{28, 31, 40, 255});
         bool mouse_captured = false;
         bool keyboard_captured = false;
+        const bool previous_isometric_view = isometric_view;
 #if SEED_WITH_EDITOR
         // Backend gathers input and begins an ImGui frame. Its draw data is rendered last.
         rlImGuiBegin();
-        editor.draw(world, assets, options, playing, simulation_speed);
+        editor.draw(world, assets, options, playing, simulation_speed, isometric_view);
         mouse_captured = ImGui::GetIO().WantCaptureMouse;
         keyboard_captured = ImGui::GetIO().WantCaptureKeyboard;
 #endif
         if (!keyboard_captured && IsKeyPressed(KEY_ESCAPE)) running = false;
-        camera.update(mouse_captured);
-        selection_drag.update(mouse_captured, keyboard_captured);
+        if (!keyboard_captured && IsKeyPressed(KEY_F6)) isometric_view = !isometric_view;
+        const bool mode_changed = isometric_view != previous_isometric_view;
+        if (!isometric_view) {
+            camera.update(mouse_captured);
+        }
+        const Camera3D& active_camera = isometric_view ? isometric_camera : camera.native;
+        selection_drag.update(mouse_captured || mode_changed, keyboard_captured);
         RayCollision ground_hit{};
         if (!mouse_captured) {
-            const Ray ray = GetScreenToWorldRay(GetMousePosition(), camera.native);
+            const Ray ray = GetScreenToWorldRay(GetMousePosition(), active_camera);
             ground_hit = GetRayCollisionQuad(
                 ray,
                 Vector3{-10.0f, 0.0f, -10.0f},
@@ -454,7 +473,7 @@ int run(const Options& options) {
         } else {
             accumulator = 0.0;
         }
-        BeginMode3D(camera.native);
+        BeginMode3D(active_camera);
         DrawPlane(
             Vector3{0.0f, 0.0f, 0.0f},
             Vector2{20.0f, 20.0f},
@@ -468,7 +487,7 @@ int run(const Options& options) {
             Vector3{0.0f, 0.01f, 10.0f},
             BLUE);
         engine::drawScene(world, assets);
-        update_and_draw_prototypes(session, selection, camera.native, selection_drag);
+        update_and_draw_prototypes(session, selection, active_camera, selection_drag);
         if (ground_hit.hit) {
             DrawSphere(
                 Vector3{ground_hit.point.x, 0.12f, ground_hit.point.z},
